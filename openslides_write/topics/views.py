@@ -7,7 +7,7 @@ from werkzeug.routing import Map
 from werkzeug.wrappers import Request, Response
 
 from ..utils.routing import Rule
-from ..utils.types import DBConfig
+from ..utils.types import DatabaseConfig
 from .schema import is_valid_new_topic, is_valid_update_topic
 
 
@@ -18,9 +18,9 @@ class TopicViewSet:
     During initialization we bind the viewpoint and database to the instance.
     """
 
-    def __init__(self, viewpoint: str, db: DBConfig) -> None:
+    def __init__(self, viewpoint: str, db: DatabaseConfig) -> None:
         self.viewpoint = viewpoint
-        self.url = f"{db['protocol']}://{db['host']}:{db['port']}/{db['database']}"
+        self.database_url = f"{db['protocol']}://{db['host']}:{db['port']}"
         self.headers = {"Content-Type": "application/json"}
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
@@ -43,7 +43,7 @@ class TopicViewSet:
         result = {"created": 0, "error": 0}
         for topic in data:
             response = requests.post(
-                self.url, data=json.dumps(topic), headers=self.headers
+                self.database_url, data=json.dumps(topic), headers=self.headers
             )
             if response.ok:
                 result["created"] += 1
@@ -62,7 +62,7 @@ class TopicViewSet:
         for topic in data:
             id = topic.pop("id")
             rev = topic.pop("rev")
-            url = "/".join((self.url, id))
+            url = "/".join((self.database_url, id))
             headers = self.headers
             headers["If-Match"] = rev
             response = requests.put(url, data=json.dumps(topic), headers=headers)
@@ -77,10 +77,10 @@ class TopicViewSet:
         """
         Viewpoint to delete existing topics.
         """
-        return Response("Huhu3")
+        return Response("Hello")
 
 
-def get_get_rules_func(db: DBConfig) -> Callable[[Map], Iterable[Rule]]:
+def get_get_rules_func(db: DatabaseConfig) -> Callable[[Map], Iterable[Rule]]:
     """
     Contructor for get_rules method.
     """

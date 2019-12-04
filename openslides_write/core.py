@@ -6,7 +6,12 @@ from werkzeug.routing import Map
 from werkzeug.wrappers import Response
 
 from .topics import Topics
-from .utils.types import ApplicationConfig, DBConfig, StartResponse, WSGIEnvironment
+from .utils.types import (
+    ApplicationConfig,
+    DatabaseConfig,
+    StartResponse,
+    WSGIEnvironment,
+)
 from .utils.wrappers import Request
 
 Apps = (Topics,)
@@ -14,7 +19,7 @@ Apps = (Topics,)
 
 class Application:
     """
-    Central application container for the module.
+    Central application container for this service.
 
     During initialization we bind configuration and database to the instance
     and also map apps's urls.
@@ -22,7 +27,7 @@ class Application:
 
     def __init__(self, config: ApplicationConfig) -> None:
         self.config = config
-        self.db = DBConfig(protocol="http", host="localhost", port=5984, database="foo")
+        self.db = config["database"]
         self.url_map = Map()
         for App in Apps:
             self.url_map.add(App(self.db))
@@ -38,18 +43,18 @@ class Application:
         try:
             rule, arguments = adapter.match(return_rule=True)
             response = rule.view.dispatch(request, **arguments)
-        except JsonSchemaException as e:
-            return BadRequest(e.message)
-        except HTTPException as e:
-            return e
+        except JsonSchemaException as exception:
+            return BadRequest(exception.message)
+        except HTTPException as exception:
+            return exception
         return response
 
-    def wsgi_app(
+    def wsgi_application(
         self, environ: WSGIEnvironment, start_response: StartResponse
     ) -> Iterable[bytes]:
         """
         Creates Werkzeug's Request object, calls the dispatch_request method and
-        evaluate Response object (or HTTPException) as WSGI application.
+        evaluates Response object (or HTTPException) as WSGI application.
         """
         request = Request(environ)
         response = self.dispatch_request(request)
@@ -59,17 +64,22 @@ class Application:
         self, environ: WSGIEnvironment, start_response: StartResponse
     ) -> Iterable[bytes]:
         """
-        Dispatches request to `wsgi_app` method so that one may apply custom
-        middlewares to the application.
+        Dispatches request to `wsgi_application` method so that one may apply
+        custom middlewares to the application.
         """
-        return self.wsgi_app(environ, start_response)
+        return self.wsgi_application(environ, start_response)
 
 
-def create_app() -> Application:
+def create_application() -> Application:
     """
     Application factory function to create a new instance of the application.
+
+    Parses database configuration from environment variables.
     """
-    app = Application(
-        ApplicationConfig(foo="bar")
-    )  # TODO: Add configuration for startup such as database configs etc.
-    return app
+    # TODO: Parse database config from environment variables.
+    application = Application(
+        ApplicationConfig(
+            database=DatabaseConfig(protocol="http", host="localhost", port=5984)
+        )
+    )
+    return application
