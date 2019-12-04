@@ -6,3 +6,4 @@ python:
 script:
   - black --check openslides_write/ start.py
   - isort --check --recursive openslides_write/ start.py
+  - mypy openslides_write/ start.py
