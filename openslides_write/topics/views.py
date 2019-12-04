@@ -2,12 +2,12 @@ from typing import Callable, Iterable
 
 import requests
 import simplejson as json
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.routing import Map
 from werkzeug.wrappers import Request, Response
 
 from ..utils.routing import Rule
-from ..utils.types import DatabaseConfig
+from ..utils.types import ServicesConfig
 from .schema import is_valid_new_topic, is_valid_update_topic
 
 
@@ -18,10 +18,15 @@ class TopicViewSet:
     During initialization we bind the viewpoint and database to the instance.
     """
 
-    def __init__(self, viewpoint: str, db: DatabaseConfig) -> None:
+    def __init__(self, viewpoint: str, services: ServicesConfig) -> None:
         self.viewpoint = viewpoint
-        self.database_url = f"{db['protocol']}://{db['host']}:{db['port']}"
-        self.headers = {"Content-Type": "application/json"}
+
+        self.database_url = f"{services['database']['protocol']}://{services['database']['host']}:{services['database']['port']}"
+        self.database_headers = {"Content-Type": "application/json"}
+        self.writer_url = "X"
+        self.writer_headers = {"Content-Type": "application/json"}
+        self.get_id_url = "Y"
+        self.get_id_headers = {"Content-Type": "application/json"}
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
         """
@@ -37,13 +42,51 @@ class TopicViewSet:
         """
         Viewpoint to create new topics.
         """
+        event_id = kwargs["event"]
+
         # TODO: Check permissions.
         data = request.json
         is_valid_new_topic(data)
         result = {"created": 0, "error": 0}
+
+        # Check existence of event.
+        response = requests.get(
+            self.database_url,
+            data=json.dumps([f"event.{event_id}"]),
+            headers=self.database_headers,
+        )
+        if not response.ok:
+            raise InternalServerError("Connection to database failed.")
+        if not response.json()["data"]:
+            raise BadRequest(f"Event with id {event_id} does not exist.")
+        change_id = response.json()["changeId"]
+
+        # Parse topics
         for topic in data:
+            # Get new id.
+            how_many = 1
             response = requests.post(
-                self.database_url, data=json.dumps(topic), headers=self.headers
+                self.get_id_url,
+                data=json.dumps({f"event.{event_id}.topic": how_many}),
+                headers=self.get_id_headers,
+            )
+            if not response.ok:
+                result["error"] += 1
+                continue
+            topic_id = response.text
+
+            # Write data to stream.
+            data = {
+                "changeId": change_id,
+                "keys": f"event.{event_id}",
+                "data": {
+                    f"event.{event_id}.topic.{topic_id}.title": topic.title,
+                    f"event.{event_id}.topic.{topic_id}.text": topic.text,
+                    f"event.{event_id}.topic.{topic_id}.attachments": topic.attachments,
+                },
+            }
+            response = requests.post(
+                self.writer_url, data=json.dumps(data), headers=self.writer_headers
             )
             if response.ok:
                 result["created"] += 1
@@ -63,10 +106,9 @@ class TopicViewSet:
             id = topic.pop("id")
             rev = topic.pop("rev")
             url = "/".join((self.database_url, id))
-            headers = self.headers
+            headers = self.database_headers
             headers["If-Match"] = rev
             response = requests.put(url, data=json.dumps(topic), headers=headers)
-            print(response.text)
             if response.ok:
                 result["updated"] += 1
             else:
@@ -80,7 +122,7 @@ class TopicViewSet:
         return Response("Hello")
 
 
-def get_get_rules_func(db: DatabaseConfig) -> Callable[[Map], Iterable[Rule]]:
+def get_get_rules_func(services: ServicesConfig) -> Callable[[Map], Iterable[Rule]]:
     """
     Contructor for get_rules method.
     """
@@ -91,22 +133,22 @@ def get_get_rules_func(db: DatabaseConfig) -> Callable[[Map], Iterable[Rule]]:
         """
         return [
             Rule(
-                "/topics/new",
+                "/<int:event>/topics/new",
                 endpoint="TopicViewSet new",
                 methods=("POST",),
-                view=TopicViewSet("new", db=db),
+                view=TopicViewSet("new", services=services),
             ),
             Rule(
-                "/topics/update",
+                "/<int:event>/topics/update",
                 endpoint="TopicViewSet update",
                 methods=("POST",),
-                view=TopicViewSet("update", db=db),
+                view=TopicViewSet("update", services=services),
             ),
             Rule(
-                "/topics/delete",
+                "/<int:event>/topics/delete",
                 endpoint="TopicViewSet delete",
                 methods=("POST",),
-                view=TopicViewSet("delete", db=db),
+                view=TopicViewSet("delete", services=services),
             ),
         ]
 

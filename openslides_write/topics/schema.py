@@ -21,7 +21,7 @@ is_valid_new_topic = fastjsonschema.compile(
                     "type": "string",
                 },
                 "attachments": {
-                    "description": "An arry of attachment ids that should be referenced with this topic.",
+                    "description": "An array of attachment ids that should be referenced with this topic.",
                     "type": "array",
                     "items": {"type": "integer"},
                     "uniqueItems": True,
