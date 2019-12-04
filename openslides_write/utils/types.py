@@ -2,11 +2,11 @@ from typing import Any, Callable, Dict, Text
 
 from mypy_extensions import TypedDict
 
-ApplicationConfig = TypedDict("ApplicationConfig", {"foo": str})
-
-DBConfig = TypedDict(
-    "DBConfig", {"protocol": str, "host": str, "port": int, "database": str}
+DatabaseConfig = TypedDict(
+    "DatabaseConfig", {"protocol": str, "host": str, "port": int}
 )
+
+ApplicationConfig = TypedDict("ApplicationConfig", {"database": DatabaseConfig},)
 
 StartResponse = Callable
 
