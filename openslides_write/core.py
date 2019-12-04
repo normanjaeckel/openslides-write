@@ -8,7 +8,8 @@ from werkzeug.wrappers import Response
 from .topics import Topics
 from .utils.types import (
     ApplicationConfig,
-    DatabaseConfig,
+    ServiceConfig,
+    ServicesConfig,
     StartResponse,
     WSGIEnvironment,
 )
@@ -27,10 +28,10 @@ class Application:
 
     def __init__(self, config: ApplicationConfig) -> None:
         self.config = config
-        self.db = config["database"]
+        self.services = config["services"]
         self.url_map = Map()
         for App in Apps:
-            self.url_map.add(App(self.db))
+            self.url_map.add(App(self.services))
         super().__init__()
 
     def dispatch_request(self, request: Request) -> Union[Response, HTTPException]:
@@ -79,7 +80,11 @@ def create_application() -> Application:
     # TODO: Parse database config from environment variables.
     application = Application(
         ApplicationConfig(
-            database=DatabaseConfig(protocol="http", host="localhost", port=5984)
+            services=ServicesConfig(
+                database=ServiceConfig(protocol="http", host="localhost", port=9001),
+                get_id=ServiceConfig(protocol="http", host="localhost", port=9002),
+                writer=ServiceConfig(protocol="http", host="localhost", port=9003),
+            )
         )
     )
     return application
