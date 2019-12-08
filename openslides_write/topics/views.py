@@ -8,25 +8,14 @@ from werkzeug.wrappers import Request, Response
 
 from ..utils.routing import Rule
 from ..utils.types import ServicesConfig
+from ..utils.views import ViewSet
 from .schema import is_valid_new_topic, is_valid_update_topic
 
 
-class TopicViewSet:
+class TopicViewSet(ViewSet):
     """
     Viewset for topics.
-
-    During initialization we bind the viewpoint and database to the instance.
     """
-
-    def __init__(self, viewpoint: str, services: ServicesConfig) -> None:
-        self.viewpoint = viewpoint
-
-        self.database_url = f"{services['database']['protocol']}://{services['database']['host']}:{services['database']['port']}"
-        self.database_headers = {"Content-Type": "application/json"}
-        self.writer_url = "X"
-        self.writer_headers = {"Content-Type": "application/json"}
-        self.get_id_url = "Y"
-        self.get_id_headers = {"Content-Type": "application/json"}
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
         """
@@ -50,48 +39,35 @@ class TopicViewSet:
         result = {"created": 0, "error": 0}
 
         # Check existence of event.
-        response = requests.get(
-            self.database_url,
-            data=json.dumps([f"event.{event_id}"]),
-            headers=self.database_headers,
-        )
-        if not response.ok:
-            raise InternalServerError("Connection to database failed.")
-        if not response.json()["data"]:
+        event, change_id = self.database.get(f"event.{event_id}")
+        if event is None:
             raise BadRequest(f"Event with id {event_id} does not exist.")
-        change_id = response.json()["changeId"]
 
         # Parse topics
         for topic in data:
             # Get new id.
             how_many = 1
-            response = requests.post(
-                self.get_id_url,
-                data=json.dumps({f"event.{event_id}.topic": how_many}),
-                headers=self.get_id_headers,
-            )
-            if not response.ok:
+            key = f"event.{event_id}.topics.topic"
+            try:
+                res = self.sequencer.get({key: how_many})
+            except InternalServerError:
                 result["error"] += 1
                 continue
-            topic_id = response.text
+            topic_id = res[key][0]
 
             # Write data to stream.
             data = {
-                "changeId": change_id,
-                "keys": f"event.{event_id}",
-                "data": {
-                    f"event.{event_id}.topic.{topic_id}.title": topic.title,
-                    f"event.{event_id}.topic.{topic_id}.text": topic.text,
-                    f"event.{event_id}.topic.{topic_id}.attachments": topic.attachments,
-                },
+                f"event.{event_id}.topics.topic.{topic_id}.title": topic.title,
+                f"event.{event_id}.topics.topic.{topic_id}.text": topic.text,
+                f"event.{event_id}.topics.topic.{topic_id}.attachments": topic.attachments,
             }
-            response = requests.post(
-                self.writer_url, data=json.dumps(data), headers=self.writer_headers
-            )
-            if response.ok:
-                result["created"] += 1
-            else:
+            try:
+                self.event_writer.send(change_id, [f"event.{event_id}"], data)
+            except InternalServerError:
                 result["error"] += 1
+                continue
+            result["created"] += 1
+
         return Response(json.dumps(result), status=201, content_type="application/json")
 
     def update(self, request: Request, **kwargs: dict) -> Response:
@@ -102,17 +78,17 @@ class TopicViewSet:
         data = request.json
         is_valid_update_topic(data)
         result = {"updated": 0, "error": 0}
-        for topic in data:
-            id = topic.pop("id")
-            rev = topic.pop("rev")
-            url = "/".join((self.database_url, id))
-            headers = self.database_headers
-            headers["If-Match"] = rev
-            response = requests.put(url, data=json.dumps(topic), headers=headers)
-            if response.ok:
-                result["updated"] += 1
-            else:
-                result["error"] += 1
+        # for topic in data:
+        #     id = topic.pop("id")
+        #     rev = topic.pop("rev")
+        #     url = "/".join((self.database_url, id))
+        #     headers = self.database_headers
+        #     headers["If-Match"] = rev
+        #     response = requests.put(url, data=json.dumps(topic), headers=headers)
+        #     if response.ok:
+        #         result["updated"] += 1
+        #     else:
+        #         result["error"] += 1
         return Response(json.dumps(result), status=200, content_type="application/json")
 
     def delete(self, request: Request, **kwargs: dict) -> Response:
@@ -124,7 +100,7 @@ class TopicViewSet:
 
 def get_get_rules_func(services: ServicesConfig) -> Callable[[Map], Iterable[Rule]]:
     """
-    Contructor for get_rules method.
+    Contructor for Werkzeug's get_rules method.
     """
 
     def get_rules(map: Map) -> Iterable[Rule]:
