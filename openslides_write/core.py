@@ -22,7 +22,7 @@ class Application:
     """
     Central application container for this service.
 
-    During initialization we bind configuration and database to the instance
+    During initialization we bind configuration for services to the instance
     and also map apps's urls.
     """
 
@@ -82,8 +82,10 @@ def create_application() -> Application:
         ApplicationConfig(
             services=ServicesConfig(
                 database=ServiceConfig(protocol="http", host="localhost", port=9001),
-                get_id=ServiceConfig(protocol="http", host="localhost", port=9002),
-                writer=ServiceConfig(protocol="http", host="localhost", port=9003),
+                sequencer=ServiceConfig(protocol="http", host="localhost", port=9002),
+                event_writer=ServiceConfig(
+                    protocol="http", host="localhost", port=9003
+                ),
             )
         )
     )

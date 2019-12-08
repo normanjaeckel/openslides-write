@@ -6,7 +6,11 @@ ServiceConfig = TypedDict("ServiceConfig", {"protocol": str, "host": str, "port"
 
 ServicesConfig = TypedDict(
     "ServicesConfig",
-    {"database": ServiceConfig, "get_id": ServiceConfig, "writer": ServiceConfig},
+    {
+        "database": ServiceConfig,
+        "sequencer": ServiceConfig,
+        "event_writer": ServiceConfig,
+    },
 )
 
 ApplicationConfig = TypedDict("ApplicationConfig", {"services": ServicesConfig},)
