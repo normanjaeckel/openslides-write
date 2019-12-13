@@ -18,5 +18,4 @@ To start run
 
 or
 
-    $ pip install gunicorn==20.0.4
     $ gunicorn openslides_write_service.wsgi:application
