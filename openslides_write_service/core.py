@@ -1,5 +1,8 @@
+import os
 from typing import Iterable, Union
+from urllib.parse import urlparse
 
+import redis
 from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.routing import Map
@@ -8,7 +11,6 @@ from werkzeug.wrappers import Response
 from .topics import Topics
 from .utils.types import (
     ApplicationConfig,
-    ServiceConfig,
     ServicesConfig,
     StartResponse,
     WSGIEnvironment,
@@ -32,11 +34,10 @@ class Application:
         self.url_map = Map()
         for App in Apps:
             self.url_map.add(App(self.services))
-        super().__init__()
 
     def dispatch_request(self, request: Request) -> Union[Response, HTTPException]:
         """
-        Dispatches request to single apps according to url rules. Returns a
+        Dispatches request to single apps according to URL rules. Returns a
         Response object or a HTTPException (both are WSGI applications
         themselves).
         """
@@ -75,17 +76,38 @@ def create_application() -> Application:
     """
     Application factory function to create a new instance of the application.
 
-    Parses database configuration from environment variables.
+    Parses services configuration from environment variables.
     """
-    # TODO: Parse database config from environment variables.
+    # Read environment variables.
+    database_url = os.environ.get(
+        "OPENSLIDES_WRITE_SERVICE_DATABASE_URL", "http://localhost:8008/get-elements"
+    )
+    sequencer_url = os.environ.get(
+        "OPENSLIDES_WRITE_SERVICE_SEQUENCER_URL", "http://localhost:6379/0"
+    )
+    event_writer_url = os.environ.get(
+        "OPENSLIDES_WRITE_SERVICE_EVENT_WRITER_URL", "http://localhost:8008/save"
+    )
+
+    # Parse OPENSLIDES_WRITE_SERVICE_SEQUENCER_URL and initiate connection
+    # to redis with it.
+    parse_result = urlparse(sequencer_url)
+    if not parse_result.hostname or not parse_result.port:
+        raise RuntimeError(
+            "Bad environment variable OPENSLIDES_WRITE_SERVICE_SEQUENCER_URL."
+        )
+    redis_sequencer_connection = redis.Redis(
+        host=parse_result.hostname,
+        port=parse_result.port,
+        db=int(parse_result.path.strip("/")),
+    )
+
     application = Application(
         ApplicationConfig(
             services=ServicesConfig(
-                database=ServiceConfig(protocol="http", host="localhost", port=9001),
-                sequencer=ServiceConfig(protocol="http", host="localhost", port=9002),
-                event_writer=ServiceConfig(
-                    protocol="http", host="localhost", port=9003
-                ),
+                database=database_url,
+                sequencer=redis_sequencer_connection,
+                event_writer=event_writer_url,
             )
         )
     )

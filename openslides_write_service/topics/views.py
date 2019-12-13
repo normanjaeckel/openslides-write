@@ -1,6 +1,5 @@
 from typing import Callable, Iterable
 
-import requests
 import simplejson as json
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.routing import Map
@@ -39,14 +38,14 @@ class TopicViewSet(ViewSet):
         result = {"created": 0, "error": 0}
 
         # Check existence of event.
-        event, change_id = self.database.get(f"event.{event_id}")
+        event, version = self.database.get(f"event:{event_id}:name")
         if event is None:
             raise BadRequest(f"Event with id {event_id} does not exist.")
 
         # Parse topics
         for topic in data:
             # Get new id.
-            how_many = 1
+            how_many = 1  # TODO: Enable other values than 1.
             key = f"event.{event_id}.topics.topic"
             try:
                 res = self.sequencer.get({key: how_many})
@@ -57,12 +56,13 @@ class TopicViewSet(ViewSet):
 
             # Write data to stream.
             data = {
-                f"event.{event_id}.topics.topic.{topic_id}.title": topic.title,
-                f"event.{event_id}.topics.topic.{topic_id}.text": topic.text,
-                f"event.{event_id}.topics.topic.{topic_id}.attachments": topic.attachments,
+                f"topic:{topic_id}:title": topic["title"],
+                f"topic:{topic_id}:event": event_id,
+                f"topic:{topic_id}:text": topic.get("text"),
+                f"topic:{topic_id}:attachments": topic.get("attachments"),
             }
             try:
-                self.event_writer.send(change_id, [f"event.{event_id}"], data)
+                self.event_writer.send(version, [f"event:{event_id}:name"], data)
             except InternalServerError:
                 result["error"] += 1
                 continue
