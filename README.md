@@ -1,7 +1,7 @@
-# OpenSlides ... · Write
+# OpenSlides Write Service
 
-Service worker for OpenSlides ... which accepts incomming requests to add,
-change or delete data, checks and parses them and writes them to the event stream.
+Service worker for OpenSlides which accepts incomming requests to add, change or
+delete data, checks and parses them and writes them to the event stream.
 
 Requires Python 3.8.x (maybe also lower versions are working).
 
@@ -19,4 +19,4 @@ To start run
 or
 
     $ pip install gunicorn==20.0.4
-    $ gunicorn openslides-write.wsgi:application
+    $ gunicorn openslides_write_service.wsgi:application
