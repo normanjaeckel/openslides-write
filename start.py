@@ -1,6 +1,6 @@
 from werkzeug.serving import run_simple
 
-from openslides_write.core import create_application
+from openslides_write_service.core import create_application
 
 application = create_application()
 
