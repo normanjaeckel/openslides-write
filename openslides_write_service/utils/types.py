@@ -1,19 +1,13 @@
 from typing import Any, Callable, Dict, Text
 
+import redis
 from mypy_extensions import TypedDict
 
-ServiceConfig = TypedDict("ServiceConfig", {"protocol": str, "host": str, "port": int})
-
 ServicesConfig = TypedDict(
-    "ServicesConfig",
-    {
-        "database": ServiceConfig,
-        "sequencer": ServiceConfig,
-        "event_writer": ServiceConfig,
-    },
+    "ServicesConfig", {"database": str, "sequencer": redis.Redis, "event_writer": str},
 )
 
-ApplicationConfig = TypedDict("ApplicationConfig", {"services": ServicesConfig},)
+ApplicationConfig = TypedDict("ApplicationConfig", {"services": ServicesConfig})
 
 StartResponse = Callable
 
