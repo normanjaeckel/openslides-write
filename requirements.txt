@@ -2,7 +2,7 @@ black==19.10b0
 isort==4.3.21
 mypy==0.750
 grpcio==1.25.0
-git+https://github.com/ostcar/openslides-ng-database.git#egg=database&subdirectory=api/database
+git+https://github.com/ostcar/openslides-ng-database.git#egg=database&subdirectory=api
 
 
 --requirement requirements_production.txt
