@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from typing import Dict, List, Tuple
+=======
+from typing import Tuple, List, Dict
+>>>>>>> 073160cb2f7717409ccd819e59b4b5c1d479f50f
 
 import grpc
 import requests
@@ -11,6 +15,8 @@ from database.database_pb2 import (
 )
 from database.database_pb2_grpc import DatabaseStub
 from werkzeug.exceptions import InternalServerError
+from database.database_pb2_grpc import DatabaseStub
+from database.database_pb2 import SaveRequest, SaveReply, GetElementsRequest, GetElementsResponse
 
 
 class Database:
