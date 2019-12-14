@@ -15,4 +15,4 @@ class ViewSet:
         self.viewpoint = viewpoint
         self.database = Database(services["database"])
         self.sequencer = Sequencer(services["sequencer"])
-        self.event_writer = EventWriter(services["event_writer"])
+        self.event_writer = self.database

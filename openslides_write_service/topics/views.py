@@ -57,9 +57,9 @@ class TopicViewSet(ViewSet):
             # Write data to stream.
             data = {
                 f"topic:{topic_id}:title": topic["title"],
-                f"topic:{topic_id}:event": event_id,
-                f"topic:{topic_id}:text": topic.get("text"),
-                f"topic:{topic_id}:attachments": topic.get("attachments"),
+                f"topic:{topic_id}:event": str(event_id),
+                f"topic:{topic_id}:text": topic.get("text") or "",
+                f"topic:{topic_id}:attachments": topic.get("attachments") or "",
             }
             try:
                 self.event_writer.send(version, [f"event:{event_id}:name"], data)

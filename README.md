@@ -19,3 +19,9 @@ To start run
 or
 
     $ gunicorn openslides_write_service.wsgi:application
+
+
+## Create new topic
+
+curl -H 'Content-Type: application/json' -d '[{"title":"New Topic"}]' localhost:8080/1/topics/new
+
