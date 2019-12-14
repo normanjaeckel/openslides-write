@@ -80,7 +80,7 @@ def create_application() -> Application:
     """
     # Read environment variables.
     database_url = os.environ.get(
-        "OPENSLIDES_WRITE_SERVICE_DATABASE_URL", "http://localhost:8008/get-elements"
+        "OPENSLIDES_WRITE_SERVICE_DATABASE_URL", "localhost:9008"
     )
     sequencer_url = os.environ.get(
         "OPENSLIDES_WRITE_SERVICE_SEQUENCER_URL", "http://localhost:6379/0"
