@@ -1,11 +1,8 @@
 from typing import Any, Callable, Dict, Text
 
-import redis
 from mypy_extensions import TypedDict
 
-ServicesConfig = TypedDict(
-    "ServicesConfig", {"database": str, "sequencer": redis.Redis, "event_writer": str},
-)
+ServicesConfig = TypedDict("ServicesConfig", {"database": str, "event_store": str},)
 
 ApplicationConfig = TypedDict("ApplicationConfig", {"services": ServicesConfig})
 

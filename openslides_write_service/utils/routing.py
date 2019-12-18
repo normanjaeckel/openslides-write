@@ -28,4 +28,4 @@ class RuleFactory(WerkzeugRuleFactory):
         """
         if not hasattr(self, "get_rules_func"):
             raise NotImplementedError
-        return self.get_rules_func(map)  # type: ignore[attr-defined]
+        return self.get_rules_func(map)  # type: ignore[attr-defined] # noqa E821

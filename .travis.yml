@@ -6,4 +6,5 @@ python:
 script:
   - black --check openslides_write_service/ start.py
   - isort --check --recursive openslides_write_service/ start.py
+  - flake8 openslides_write_service/ start.py
   - mypy openslides_write_service/ start.py
