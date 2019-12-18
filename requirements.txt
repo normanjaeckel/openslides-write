@@ -1,5 +1,6 @@
 black==19.10b0
 isort==4.3.21
 mypy==0.750
+flake8==3.7.9
 
 --requirement requirements_production.txt

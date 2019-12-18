@@ -1,7 +1,8 @@
+from multiprocessing import Lock
 from typing import Callable, Iterable
 
 import simplejson as json
-from werkzeug.exceptions import BadRequest, InternalServerError
+from werkzeug.exceptions import BadRequest
 from werkzeug.routing import Map
 from werkzeug.wrappers import Request, Response
 
@@ -15,6 +16,8 @@ class TopicViewSet(ViewSet):
     """
     Viewset for topics.
     """
+
+    new_topic_lock = Lock()
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
         """
@@ -30,44 +33,48 @@ class TopicViewSet(ViewSet):
         """
         Viewpoint to create new topics.
         """
+        # Parse event id.
         event_id = kwargs["event"]
 
-        # TODO: Check permissions.
-        data = request.json
-        is_valid_new_topic(data)
-        result = {"created": 0, "error": 0}
+        # Check permissions.
+        # TODO
 
-        # Check existence of event.
-        event, version = self.database.get(f"event:{event_id}:name")
-        if event is None:
-            raise BadRequest(f"Event with id {event_id} does not exist.")
+        # Check existence of event in database.
+        # It someone removes it right this moment, this is no problem.
+        # event = self.database.get(f"event:{event_id}:exists")
+        # if event is None:
+        #    raise BadRequest(f"Event with id {event_id} does not exist.")
 
-        # Parse topics
-        for topic in data:
-            # Get new id.
-            how_many = 1  # TODO: Enable other values than 1.
-            key = f"event.{event_id}.topics.topic"
-            try:
-                res = self.sequencer.get({key: how_many})
-            except InternalServerError:
-                result["error"] += 1
-                continue
-            topic_id = res[key][0]
+        # Validate payload.
+        payload = request.json
+        is_valid_new_topic(payload)
+        result = []
 
-            # Write data to stream.
-            data = {
-                f"topic:{topic_id}:title": topic["title"],
-                f"topic:{topic_id}:event": event_id,
-                f"topic:{topic_id}:text": topic.get("text"),
-                f"topic:{topic_id}:attachments": topic.get("attachments"),
-            }
-            try:
-                self.event_writer.send(version, [f"event:{event_id}:name"], data)
-            except InternalServerError:
-                result["error"] += 1
-                continue
-            result["created"] += 1
+        # Set lock to prepare data for event store.
+        with self.new_topic_lock:
+            # Get highest existing id.
+            topic_id = self.event_store.get_highest_id("topic")
+            data = {}
 
+            # Parse topics.
+            for topic in payload:
+                topic_id += 1
+                data.update(
+                    {
+                        f"topic:{topic_id}:exists": True,
+                        f"topic:{topic_id}:title": topic["title"],
+                        f"topic:{topic_id}:event": event_id,
+                        f"topic:{topic_id}:text": topic.get("text", ""),
+                        f"topic:{topic_id}:attachments": topic.get("attachments", []),
+                    }
+                )
+                result.append(topic_id)
+
+            # Save topics.
+            self.event_store.save(data)
+
+        # Send topics to stream and create response.
+        self.event_store.send(data)
         return Response(json.dumps(result), status=201, content_type="application/json")
 
     def update(self, request: Request, **kwargs: dict) -> Response:
