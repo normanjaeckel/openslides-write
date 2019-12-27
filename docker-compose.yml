@@ -4,6 +4,8 @@ services:
     image: postgres:alpine
   locker:
     image: redis:alpine
+    ports:
+      - "6379:6379"
   app:
     build: .
     ports:
@@ -11,3 +13,4 @@ services:
     depends_on:
       - db
       - locker
+    env_file: openslides_write_service.env

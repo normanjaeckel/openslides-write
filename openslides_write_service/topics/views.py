@@ -1,4 +1,3 @@
-from multiprocessing import Lock
 from typing import Callable, Iterable
 
 import simplejson as json
@@ -16,8 +15,6 @@ class TopicViewSet(ViewSet):
     """
     Viewset for topics.
     """
-
-    new_topic_lock = Lock()
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
         """
@@ -51,10 +48,14 @@ class TopicViewSet(ViewSet):
         result = []
 
         # Set lock to prepare data for event store.
-        with self.new_topic_lock:
+        with self.locker.acquire(f"{event_id}.topics.new"):
             # Get highest existing id.
             topic_id = self.event_store.get_highest_id("topic")
             data = {}
+
+            # import time
+
+            # time.sleep(25)
 
             # Parse topics.
             for topic in payload:
