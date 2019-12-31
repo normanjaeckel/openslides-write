@@ -1,6 +1,9 @@
+import logging
 import os
 from typing import Iterable, Union
+from urllib.parse import urlparse
 
+import redis
 from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.routing import Map
@@ -16,6 +19,8 @@ from .utils.types import (
 from .utils.wrappers import Request
 
 Apps = (Topics,)
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Application:
@@ -84,10 +89,31 @@ def create_application() -> Application:
         "OPENSLIDES_WRITE_SERVICE_EVENT_STORE_URL",
         "http://localhost:8008/save",  # TODO: Use correct variables here.
     )
+    locker_url = os.environ.get(
+        "OPENSLIDES_WRITE_SERVICE_LOCKER_URL", "http://localhost:6379/0"
+    )
+
+    # Parse OPENSLIDES_WRITE_SERVICE_LOCKER_URL and initiate connection to redis
+    # with it.
+    parse_result = urlparse(locker_url)
+    if not parse_result.hostname or not parse_result.port or not parse_result.path:
+        raise RuntimeError(
+            "Bad environment variable OPENSLIDES_WRITE_SERVICE_LOCKER_URL."
+        )
+    redis_locker_connection = redis.Redis(
+        host=parse_result.hostname,
+        port=parse_result.port,
+        db=int(parse_result.path.strip("/")),
+    )
+
     # Create application instance.
     application = Application(
         ApplicationConfig(
-            services=ServicesConfig(database=database_url, event_store=event_store_url,)
+            services=ServicesConfig(
+                database=database_url,
+                event_store=event_store_url,
+                locker=redis_locker_connection,
+            )
         )
     )
     return application

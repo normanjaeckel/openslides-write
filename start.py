@@ -5,5 +5,13 @@ from openslides_write_service.core import create_application
 application = create_application()
 
 
+def main() -> None:
+    """
+    Main entry point for this start script.
+    """
+    # Log "Start Werkzeug's development server."
+    run_simple("localhost", 8000, application, use_reloader=True)
+
+
 if __name__ == "__main__":
-    run_simple("localhost", 8080, application, use_reloader=True)
+    main()

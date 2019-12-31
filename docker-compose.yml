@@ -1,0 +1,16 @@
+version: "3.7"
+services:
+  db:
+    image: postgres:alpine
+  locker:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - locker
+    env_file: openslides_write_service.env

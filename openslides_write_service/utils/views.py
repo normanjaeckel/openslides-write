@@ -1,5 +1,6 @@
 from ..services.database import Database
 from ..services.event_store import EventStore
+from ..services.locker import Locker
 from .types import ServicesConfig
 
 
@@ -14,3 +15,4 @@ class ViewSet:
         self.viewpoint = viewpoint
         self.database = Database(services["database"])
         self.event_store = EventStore(services["event_store"])
+        self.locker = Locker(services["locker"])
