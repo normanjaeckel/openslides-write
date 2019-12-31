@@ -14,6 +14,10 @@ class Locker:
 
     def acquire(self, key: str) -> redis_lock.Lock:
         """
+        Acquire lock for the given key. Use this with a context manager. The
+        lock expires after worker timeout. We add one extra second to ensure
+        that - after a SIGTERM from the master process the context manager exits
+        cleanly before the lock expires.
         """
-        expire = int(os.environ.get("OPENSLIDES_WRITE_SERVICE_WORKER_TIMEOUT", 30))
-        return redis_lock.Lock(self.connection, key, expire=expire, auto_renewal=True)
+        expire = int(os.environ.get("OPENSLIDES_WRITE_SERVICE_WORKER_TIMEOUT", 30)) + 1
+        return redis_lock.Lock(self.connection, key, expire=expire)
