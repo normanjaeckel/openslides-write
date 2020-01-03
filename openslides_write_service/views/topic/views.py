@@ -5,9 +5,9 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.routing import Map
 from werkzeug.wrappers import Request, Response
 
-from ..utils.routing import Rule
-from ..utils.types import ServicesConfig
-from ..utils.views import ViewSet
+from ...utils.routing import Rule
+from ...utils.types import Environment
+from ...utils.views import ViewSet
 from .schema import is_valid_new_topic, is_valid_update_topic
 
 
@@ -106,7 +106,7 @@ class TopicViewSet(ViewSet):
         return Response("Hello")
 
 
-def get_get_rules_func(services: ServicesConfig) -> Callable[[Map], Iterable[Rule]]:
+def get_get_rules_func(environment: Environment) -> Callable[[Map], Iterable[Rule]]:
     """
     Contructor for Werkzeug's get_rules method.
     """
@@ -120,19 +120,19 @@ def get_get_rules_func(services: ServicesConfig) -> Callable[[Map], Iterable[Rul
                 "/<int:event>/topics/new",
                 endpoint="TopicViewSet new",
                 methods=("POST",),
-                view=TopicViewSet("new", services=services),
+                view=TopicViewSet("new", environment=environment),
             ),
             Rule(
                 "/<int:event>/topics/update",
                 endpoint="TopicViewSet update",
                 methods=("POST",),
-                view=TopicViewSet("update", services=services),
+                view=TopicViewSet("update", environment=environment),
             ),
             Rule(
                 "/<int:event>/topics/delete",
                 endpoint="TopicViewSet delete",
                 methods=("POST",),
-                view=TopicViewSet("delete", services=services),
+                view=TopicViewSet("delete", environment=environment),
             ),
         ]
 

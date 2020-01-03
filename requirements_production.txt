@@ -5,3 +5,6 @@ requests==2.22.0
 python-redis-lock==3.4.0
 mypy-extensions==0.4.3
 gunicorn==20.0.4
+
+# TODO: Remove this from production env
+inotify==0.2.10

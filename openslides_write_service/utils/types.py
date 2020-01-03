@@ -1,14 +1,15 @@
 from typing import Any, Callable, Dict, Text
 
-import redis
 from mypy_extensions import TypedDict
 
-ServicesConfig = TypedDict(
-    "ServicesConfig", {"database": str, "event_store": str, "locker": redis.Redis},
+Environment = TypedDict(
+    "Environment", {"database_url": str, "event_store_url": str, "worker_timeout": int},
 )
 
-ApplicationConfig = TypedDict("ApplicationConfig", {"services": ServicesConfig})
+ApplicationConfig = TypedDict("ApplicationConfig", {"environment": Environment})
 
 StartResponse = Callable
 
 WSGIEnvironment = Dict[Text, Any]
+
+Schema = Dict

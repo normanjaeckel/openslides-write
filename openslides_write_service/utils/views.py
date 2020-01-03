@@ -1,7 +1,6 @@
 from ..services.database import Database
 from ..services.event_store import EventStore
-from ..services.locker import Locker
-from .types import ServicesConfig
+from .types import Environment
 
 
 class ViewSet:
@@ -11,8 +10,7 @@ class ViewSet:
     During initialization we bind the viewpoint and services to the instance.
     """
 
-    def __init__(self, viewpoint: str, services: ServicesConfig) -> None:
+    def __init__(self, viewpoint: str, environment: Environment) -> None:
         self.viewpoint = viewpoint
-        self.database = Database(services["database"])
-        self.event_store = EventStore(services["event_store"])
-        self.locker = Locker(services["locker"])
+        self.database = Database(environment["database_url"])
+        self.event_store = EventStore(environment["event_store_url"])

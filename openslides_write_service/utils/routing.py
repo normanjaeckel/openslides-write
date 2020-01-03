@@ -4,6 +4,8 @@ from werkzeug.routing import Map
 from werkzeug.routing import Rule as WerkzeugRule
 from werkzeug.routing import RuleFactory as WerkzeugRuleFactory
 
+from .types import Environment
+
 
 class Rule(WerkzeugRule):
     """
@@ -21,6 +23,9 @@ class RuleFactory(WerkzeugRuleFactory):
 
     During initialization we bind the get_rules method from apps's views.
     """
+
+    def __init__(self, environment: Environment) -> None:
+        ...
 
     def get_rules(self, map: Map) -> Iterable[Rule]:
         """

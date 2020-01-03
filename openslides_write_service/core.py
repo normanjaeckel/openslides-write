@@ -1,42 +1,33 @@
 import logging
 import os
 from typing import Iterable, Union
-from urllib.parse import urlparse
 
-import redis
 from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.routing import Map
 from werkzeug.wrappers import Response
 
-from .topics import Topics
-from .utils.types import (
-    ApplicationConfig,
-    ServicesConfig,
-    StartResponse,
-    WSGIEnvironment,
-)
+from .utils.types import ApplicationConfig, Environment, StartResponse, WSGIEnvironment
 from .utils.wrappers import Request
+from .views import get_rule_factories
 
-Apps = (Topics,)
-
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Application:
     """
     Central application container for this service.
 
-    During initialization we bind configuration for services to the instance
-    and also map apps's urls.
+    During initialization we bind configuration to the instance and also map
+    rule factory's urls.
     """
 
     def __init__(self, config: ApplicationConfig) -> None:
         self.config = config
-        self.services = config["services"]
+        self.environment = config["environment"]
         self.url_map = Map()
-        for App in Apps:
-            self.url_map.add(App(self.services))
+        for rule_factory in get_rule_factories():
+            self.url_map.add(rule_factory(self.environment))
 
     def dispatch_request(self, request: Request) -> Union[Response, HTTPException]:
         """
@@ -75,45 +66,41 @@ class Application:
         return self.wsgi_application(environ, start_response)
 
 
+def get_environment() -> Environment:
+    """
+    Parses environment variables and sets their defaults if they do not exist.
+    """
+
+    database_url = event_store_url = os.environ.get(
+        "OPENSLIDES_WRITE_SERVICE_EVENT_STORE_URL",
+        "http://localhost:9000/",  # TODO: Use correct variables here.
+    )
+    worker_timeout = int(
+        os.environ.get("OPENSLIDES_WRITE_SERVICE_WORKER_TIMEOUT", "30")
+    )
+    return Environment(
+        database_url=database_url,
+        event_store_url=event_store_url,
+        worker_timeout=worker_timeout,
+    )
+
+
 def create_application() -> Application:
     """
     Application factory function to create a new instance of the application.
 
     Parses services configuration from environment variables.
     """
-    # Read environment variables.
-    database_url = os.environ.get(
-        "OPENSLIDES_WRITE_SERVICE_DATABASE_URL", "http://localhost:8008/get-elements"
-    )
-    event_store_url = os.environ.get(
-        "OPENSLIDES_WRITE_SERVICE_EVENT_STORE_URL",
-        "http://localhost:8008/save",  # TODO: Use correct variables here.
-    )
-    locker_url = os.environ.get(
-        "OPENSLIDES_WRITE_SERVICE_LOCKER_URL", "http://localhost:6379/0"
+    # Setup global loglevel.
+    logging.basicConfig(
+        level=os.environ.get("OPENSLIDES_WRITE_SERVICE_DEBUG", logging.WARNING)
     )
 
-    # Parse OPENSLIDES_WRITE_SERVICE_LOCKER_URL and initiate connection to redis
-    # with it.
-    parse_result = urlparse(locker_url)
-    if not parse_result.hostname or not parse_result.port or not parse_result.path:
-        raise RuntimeError(
-            "Bad environment variable OPENSLIDES_WRITE_SERVICE_LOCKER_URL."
-        )
-    redis_locker_connection = redis.Redis(
-        host=parse_result.hostname,
-        port=parse_result.port,
-        db=int(parse_result.path.strip("/")),
-    )
+    logger.debug("Create application")
+
+    environment = get_environment()
+    logger.debug(f"Using environment: {environment}")
 
     # Create application instance.
-    application = Application(
-        ApplicationConfig(
-            services=ServicesConfig(
-                database=database_url,
-                event_store=event_store_url,
-                locker=redis_locker_connection,
-            )
-        )
-    )
+    application = Application(ApplicationConfig(environment=environment))
     return application
