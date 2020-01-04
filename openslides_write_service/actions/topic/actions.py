@@ -4,6 +4,9 @@ from .schema import is_valid_new_topic
 
 
 class TopicCreate(Action):
+
+    name = "topic.create"
+
     def validate(self, payload: Payload, user_id: int) -> None:
         is_valid_new_topic(payload)
         # weiteres validate
