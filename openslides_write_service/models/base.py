@@ -1,6 +1,6 @@
 from abc import ABC
 
-from ..utils.types import Schema
+from .types import Schema
 
 
 class Model(ABC):

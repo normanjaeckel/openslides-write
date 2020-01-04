@@ -4,14 +4,27 @@ from typing import Iterable, Union
 
 from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest, HTTPException
-from werkzeug.routing import Map
+from werkzeug.routing import Map, Rule
+from werkzeug.routing import RuleFactory as WerkzeugRuleFactory
 from werkzeug.wrappers import Response
 
 from .utils.types import ApplicationConfig, Environment, StartResponse, WSGIEnvironment
 from .utils.wrappers import Request
-from .views import get_rule_factories
+from .views import ActionView
 
 logger = logging.getLogger(__name__)
+
+
+class RuleFactory(WerkzeugRuleFactory):
+    """
+    """
+
+    def get_rules(self, map: Map) -> Iterable[Rule]:
+        """
+        """
+        return [
+            Rule("/system/api/actions", endpoint="actions", methods=("POST",),),
+        ]
 
 
 class Application:
@@ -26,8 +39,7 @@ class Application:
         self.config = config
         self.environment = config["environment"]
         self.url_map = Map()
-        for rule_factory in get_rule_factories():
-            self.url_map.add(rule_factory(self.environment))
+        self.url_map.add(RuleFactory())
 
     def dispatch_request(self, request: Request) -> Union[Response, HTTPException]:
         """
@@ -38,7 +50,9 @@ class Application:
         adapter = self.url_map.bind_to_environ(request.environ)
         try:
             rule, arguments = adapter.match(return_rule=True)
-            response = rule.view.dispatch(request, **arguments)
+            logger.debug(f"Found rule {rule} with arguments {arguments}")
+            if rule.endpoint == "actions":
+                response = ActionView(self.environment).dispatch(request, **arguments)
         except JsonSchemaException as exception:
             return BadRequest(exception.message)
         except HTTPException as exception:

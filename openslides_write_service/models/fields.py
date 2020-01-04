@@ -1,9 +1,13 @@
 from abc import ABC
 
-from ..utils.types import Schema
+from .types import Schema
 
 
 class Field(ABC):
+    """
+    Abstract base class for model fields.
+    """
+
     def __init__(self, description: str) -> None:
         self.description = description
 
@@ -15,8 +19,8 @@ class IdField(Field):
     def get_schema(self) -> Schema:
         return {
             "description": self.description,
-            "type": "string",
-            # TODO: Add id validation.
+            "type": "integer",
+            "minimum": 1,
         }
 
 
