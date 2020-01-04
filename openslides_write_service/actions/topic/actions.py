@@ -1,18 +1,23 @@
-from ..base import Action
+from typing import List, Optional
+
+from ...utils.types import Event
+from .. import register_action
+from ..base import DatabaseAction
 from ..types import Payload
 from .schema import is_valid_new_topic
 
 
-class TopicCreate(Action):
-
-    name = "topic.create"
-
-    def validate(self, payload: Payload, user_id: int) -> None:
+@register_action("topic.create")
+class TopicCreate(DatabaseAction):
+    def validate(self, payload: Payload) -> None:
         is_valid_new_topic(payload)
-        # weiteres validate
-        return self.execute(payload, user_id)
 
-    def execute(self, payload: Payload, user_id: int) -> None:
+    def read_database(self, payload: Payload, user_id: int) -> List[str]:
+        return []
+
+    def create_event(
+        self, payload: Payload, user_id: int, keys: Optional[List[str]] = None
+    ) -> Event:
         pass
 
 

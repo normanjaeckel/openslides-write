@@ -2,7 +2,8 @@ import fastjsonschema  # type: ignore
 
 schema_version = "http://json-schema.org/draft-07/schema#"
 
-action_view_schema = fastjsonschema.compile(    {
+action_view_schema = fastjsonschema.compile(
+    {
         "$schema": schema_version,
         "title": "Schema for actions API",
         "description": "An array of actions.",
@@ -17,11 +18,15 @@ action_view_schema = fastjsonschema.compile(    {
                 },
                 "data": {
                     "description": "Data for the action",
-                    "type": "object",
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "minItems": 1,
+                    "uniqueItems": True,
                 },
             },
-            "required": ["name", "data"],
+            "required": ["action", "data"],
         },
         "minItems": 1,
         "uniqueItems": True,
-    })
+    }
+)

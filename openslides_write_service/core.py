@@ -53,8 +53,8 @@ class Application:
             logger.debug(f"Found rule {rule} with arguments {arguments}")
             if rule.endpoint == "actions":
                 response = ActionView(self.environment).dispatch(request, **arguments)
-        except JsonSchemaException as exception:
-            return BadRequest(exception.message)
+            else:
+                raise BadRequest(".............")
         except HTTPException as exception:
             return exception
         return response

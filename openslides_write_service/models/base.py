@@ -1,11 +1,9 @@
-from abc import ABC
-
 from .types import Schema
 
 
-class Model(ABC):
+class Model:
     """
-    Abstract base class for models in OpenSlides.
+    Base class for models in OpenSlides.
     """
 
     def get_schema(self, field: str) -> Schema:

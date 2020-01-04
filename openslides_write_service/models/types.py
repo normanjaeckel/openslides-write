@@ -1,3 +1,3 @@
-from typing import Dict
+from typing import Any, Dict
 
-Schema = Dict
+Schema = Dict[str, Any]

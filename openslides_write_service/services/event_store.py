@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 
-class EventStore:
+class EventStoreAdapter:
     """
     Adapter to connect to event store.
     """
@@ -10,15 +10,5 @@ class EventStore:
         self.url = event_store_url
         self.headers = {"Content-Type": "application/json"}
 
-    def save(self, data: Dict[str, Any]) -> None:
+    def send(self, events: List[Dict[str, Any]]) -> None:
         pass
-
-    def send(self, data: Dict[str, Any]) -> None:
-        pass
-
-    def get_highest_id(self, key: str) -> int:
-        """
-        Locks inside all events for the highest id for this key. Returns 0 if
-        nothing is found.
-        """
-        return 0

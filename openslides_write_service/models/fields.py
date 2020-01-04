@@ -1,52 +1,45 @@
-from abc import ABC
-
 from .types import Schema
 
 
-class Field(ABC):
+class Field:
     """
-    Abstract base class for model fields.
+    Base class for model fields.
     """
 
     def __init__(self, description: str) -> None:
         self.description = description
 
     def get_schema(self) -> Schema:
-        ...
+        raise NotImplementedError
 
 
 class IdField(Field):
     def get_schema(self) -> Schema:
-        return {
-            "description": self.description,
-            "type": "integer",
-            "minimum": 1,
-        }
+        return Schema(description=self.description, type="integer", minimum=1,)
 
 
 class CharField(Field):
     def get_schema(self) -> Schema:
-        return {
-            "description": self.description,
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256,
-        }
+        return Schema(description=self.description, type="string", maxLength=256,)
+
+
+class RequiredCharField(CharField):
+    def get_schema(self) -> Schema:
+        schema = super().get_schema()
+        schema["minLength"] = 1
+        return schema
 
 
 class TextField(Field):
     def get_schema(self) -> Schema:
-        return {
-            "description": self.description,
-            "type": "string",
-        }
+        return Schema(description=self.description, type="string",)
 
 
 class ManyToManyArrayField(Field):
     def get_schema(self) -> Schema:
-        return {
-            "description": self.description,
-            "type": "array",
-            "items": {"type": "integer"},
-            "uniqueItems": True,
-        }
+        return Schema(
+            description=self.description,
+            type="array",
+            items={"type": "integer"},
+            uniqueItems=True,
+        )
