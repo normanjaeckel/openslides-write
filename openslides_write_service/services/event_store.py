@@ -1,4 +1,6 @@
-from typing import Any, Dict
+from typing import Iterable
+
+from ..utils.types import Event
 
 
 class EventStoreAdapter:
@@ -10,5 +12,5 @@ class EventStoreAdapter:
         self.url = event_store_url
         self.headers = {"Content-Type": "application/json"}
 
-    def send(self, events: List[Dict[str, Any]]) -> None:
+    def send(self, events: Iterable[Event]) -> None:
         pass

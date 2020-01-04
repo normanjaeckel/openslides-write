@@ -1,15 +1,24 @@
 import logging
-from typing import Iterable
+from typing import Dict, Iterable, List
 
 import simplejson as json
+from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest
-from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers import Response
 
 from .actions import action_map
+from .exceptions import (
+    ActionException,
+    BackendBaseException,
+    EventStoreException,
+    MediaTypeException,
+)
 from .services.database import Database
 from .services.event_store import EventStoreAdapter
+from .services.auth import AuthAdapter
 from .utils.schema import action_view_schema
 from .utils.types import Environment, Event
+from .utils.wrappers import Request
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +30,17 @@ class ActionView:
 
     def __init__(self, environment: Environment) -> None:
         self.database = Database(environment["database_url"])
-        self.event_store = EventStore(environment["event_store_url"])
+        self.event_store = EventStoreAdapter(environment["event_store_url"])
+        self.auth_adapter = AuthAdapter(environment["auth_url"])
 
     def dispatch(self, request: Request, **kwargs: dict) -> Response:
         """
         Dispatches request to the viewpoint.
         """
         logger.debug("Start dispatching request")
+
+        # Get request user id
+        self.user_id = self.auth_adapter.get_user(request)
 
         # Validate payload of request
         if not request.is_json:
@@ -54,9 +67,7 @@ class ActionView:
         except EventStoreException as exception:
             self.handle_error(exception)
 
-        result = []  # TODO
-
-        return Response(json.dumps(result), content_type="application/json")
+        return Response()
 
     def validate(self, action_requests: List[Dict]) -> None:
         """
@@ -76,11 +87,11 @@ class ActionView:
             if action is None:
                 raise BadRequest(f"Action {element['action']} does not exist.")
             logger.debug(f"Perform action {element['action']}")
-            event = action().perform(element["data"])
+            event = action().perform(element["data"], self.user_id)
             events.append(event)
         return events
 
-    def handle_error(self, exception: Exception) -> None:
+    def handle_error(self, exception: BackendBaseException) -> None:
         """
         Handles some exceptions during dispatch of request. Raises HTTP 400.
         """

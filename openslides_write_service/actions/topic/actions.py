@@ -12,12 +12,10 @@ class TopicCreate(DatabaseAction):
     def validate(self, payload: Payload) -> None:
         is_valid_new_topic(payload)
 
-    def read_database(self, payload: Payload, user_id: int) -> List[str]:
+    def read_database(self, payload: Payload) -> List[str]:
         return []
 
-    def create_event(
-        self, payload: Payload, user_id: int, keys: Optional[List[str]] = None
-    ) -> Event:
+    def create_event(self, payload: Payload, keys: Optional[List[str]] = None) -> Event:
         pass
 
 

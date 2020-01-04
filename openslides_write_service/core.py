@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Iterable, Union
 
-from fastjsonschema import JsonSchemaException  # type: ignore
 from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.routing import Map, Rule
 from werkzeug.routing import RuleFactory as WerkzeugRuleFactory
@@ -54,7 +53,7 @@ class Application:
             if rule.endpoint == "actions":
                 response = ActionView(self.environment).dispatch(request, **arguments)
             else:
-                raise BadRequest(".............")
+                raise BadRequest(".............")  # TODO
         except HTTPException as exception:
             return exception
         return response
@@ -85,7 +84,7 @@ def get_environment() -> Environment:
     Parses environment variables and sets their defaults if they do not exist.
     """
 
-    database_url = event_store_url = os.environ.get(
+    database_url = event_store_url = auth_url = os.environ.get(
         "OPENSLIDES_WRITE_SERVICE_EVENT_STORE_URL",
         "http://localhost:9000/",  # TODO: Use correct variables here.
     )
@@ -95,6 +94,7 @@ def get_environment() -> Environment:
     return Environment(
         database_url=database_url,
         event_store_url=event_store_url,
+        auth_url = auth_url,
         worker_timeout=worker_timeout,
     )
 
