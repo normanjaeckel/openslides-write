@@ -1,4 +1,4 @@
-Werkzeug==0.16.0
+Werkzeug==2.2.3
 fastjsonschema==2.13
 simplejson==3.16.0
 requests==2.22.0
